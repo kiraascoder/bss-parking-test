@@ -1,4 +1,4 @@
-# Product Management System
+# BSS Parking Technical Test - Front End
 
 A simple product management app with authentication built with Next.js and Supabase.
 
