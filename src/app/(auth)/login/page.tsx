@@ -1,50 +1,44 @@
-"use client";
+import { createSupabaseServer } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { LoginForm } from "@/components/auth/login-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginAction } from "./action";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+export default async function LoginPage() {
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
-
-export default function LoginPage() {
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const { register, handleSubmit, formState } = form;
-
-  async function onSubmit(data: LoginForm) {
-    const res = await loginAction(data);
-    if (res?.message) alert(res.message);
+  if (user) {
+    redirect("/dashboard");
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm space-y-4"
-      >
-        <h1 className="text-xl font-semibold">Login</h1>
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-semibold text-center">
+            Login
+          </CardTitle>
+          <p className="text-sm text-muted-foreground text-center">
+            Login to your account
+          </p>
+        </CardHeader>
 
-        <Input placeholder="Email" {...register("email")} />
-        <Input
-          type="password"
-          placeholder="Password"
-          {...register("password")}
-        />
-
-        <Button type="submit" disabled={formState.isSubmitting}>
-          {formState.isSubmitting ? "Loading..." : "Login"}
-        </Button>
-      </form>
+        <CardContent className="space-y-4">
+          <LoginForm />          
+          <p className="text-sm text-center text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-primary hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

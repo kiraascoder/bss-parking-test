@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { logoutAction } from "./action";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServer();
@@ -10,15 +12,29 @@ export default async function DashboardPage() {
   if (!data.user) redirect("/login");
 
   return (
-    <div className="p-6 space-y-4">
-      <p>Welcome, {data.user.email}</p>
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-xl">Dashboard</CardTitle>
+        </CardHeader>
 
-      <form action={logoutAction}>
-        <button className="rounded bg-red-500 px-4 py-2 text-white">
-          Logout
-        </button>
-      </form>
-      <Link href="/product">Product</Link>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Welcome,</p>
+          <p className="font-medium">{data.user.email}</p>
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button asChild variant="outline">
+              <Link href="/products">Products</Link>
+            </Button>
+
+            <form action={logoutAction}>
+              <Button type="submit" variant="destructive">
+                Logout
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
