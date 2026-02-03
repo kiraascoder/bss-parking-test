@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/services/product.service";
+import { getProducts, getCurrentUserId } from "@/services/product.service";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   Table,
   TableBody,
@@ -32,20 +34,59 @@ export default function ProductListPage() {
 
   const page = Number(searchParams.get("page") ?? 1);
   const limit = Number(searchParams.get("limit") ?? 10);
-  const search = searchParams.get("search") ?? "";
+  const searchFromUrl = searchParams.get("search") ?? "";
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["products", page, limit, search],
-    queryFn: () => getProducts({ page, limit, search }),
+
+  const [searchInput, setSearchInput] = useState(searchFromUrl);
+
+
+  const debouncedSearch = useDebounce(searchInput, 500);
+
+
+  const [userId, setUserId] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    getCurrentUserId().then(setUserId);
+  }, []);
+
+
+  useEffect(() => {
+    if (debouncedSearch !== searchFromUrl) {
+      // eslint-disable-next-line react-hooks/immutability
+      updateParams({ search: debouncedSearch, page: "1" });
+    }
+  }, [debouncedSearch]);
+  
+  useEffect(() => {
+    setSearchInput(searchFromUrl);
+  }, [searchFromUrl]);
+
+  const { data, isLoading, isError } = useQuery({    
+    queryKey: ["products", userId, page, limit, debouncedSearch],
+    queryFn: () =>
+      getProducts({
+        page,
+        limit,
+        search: debouncedSearch,
+        userId: userId ?? undefined,
+      }),
+    enabled: userId !== null, 
   });
 
   function updateParams(params: Record<string, string>) {
     const newParams = new URLSearchParams(searchParams.toString());
-    Object.entries(params).forEach(([key, value]) => newParams.set(key, value));
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
     router.push(`?${newParams.toString()}`);
   }
-
-  if (isLoading) {
+  
+  if (userId === null || isLoading) {
     return (
       <PageContainer>
         <div className="space-y-6">
@@ -82,8 +123,8 @@ export default function ProductListPage() {
   }
 
   const hasProducts = data && data.data.length > 0;
-  const showEmptyState = !hasProducts && !search;
-  const showNoResults = !hasProducts && search;
+  const showEmptyState = !hasProducts && !debouncedSearch;
+  const showNoResults = !hasProducts && debouncedSearch;
 
   return (
     <PageContainer>
@@ -104,10 +145,15 @@ export default function ProductListPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search products..."
-              value={search}
-              onChange={(e) => updateParams({ search: e.target.value, page: "1" })}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
             />
+            {searchInput !== debouncedSearch && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              </div>
+            )}
           </div>
           <Select
             value={limit.toString()}
@@ -142,7 +188,7 @@ export default function ProductListPage() {
           <EmptyState
             icon={Search}
             title="No products found"
-            description={`We couldn't find any products matching "${search}". Try adjusting your search terms.`}
+            description={`We couldn't find any products matching "${debouncedSearch}". Try adjusting your search terms.`}
           />
         )}
 
@@ -198,7 +244,9 @@ export default function ProductListPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => router.push(`/products/${product.id}`)}
+                            onClick={() =>
+                              router.push(`/products/${product.id}`)
+                            }
                           >
                             <Eye className="mr-2 h-3.5 w-3.5" />
                             View
@@ -206,7 +254,9 @@ export default function ProductListPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => router.push(`/products/${product.id}/edit`)}
+                            onClick={() =>
+                              router.push(`/products/${product.id}/edit`)
+                            }
                           >
                             <Pencil className="mr-2 h-3.5 w-3.5" />
                             Edit
@@ -221,8 +271,15 @@ export default function ProductListPage() {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{data.data.length}</span> of{" "}
-                <span className="font-medium text-foreground">{data.count}</span> products
+                Showing{" "}
+                <span className="font-medium text-foreground">
+                  {data.data.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-foreground">
+                  {data.count}
+                </span>{" "}
+                products
               </p>
               <div className="flex items-center gap-2">
                 <Button

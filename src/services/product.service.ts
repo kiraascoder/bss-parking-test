@@ -6,12 +6,15 @@ interface GetProductsParams {
   page: number;
   limit: number;
   search?: string;
+  userId?: string;
 }
 
+// Get Product Service
 export async function getProducts({
   page,
   limit,
   search,
+  userId,
 }: GetProductsParams): Promise<{ data: Product[]; count: number }> {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -38,6 +41,15 @@ export async function getProducts({
   };
 }
 
+// Get Current User
+export async function getCurrentUserId(): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+  return user?.id ?? null;
+}
+
+// Create Product Service
 export async function createProduct(payload: ProductForm) {
   const {
     data: { user },
@@ -53,6 +65,7 @@ export async function createProduct(payload: ProductForm) {
   if (error) throw new Error(error.message);
 }
 
+// Get Product Service
 export async function getProductById(id: string): Promise<Product> {
   const { data, error } = await supabaseClient
     .from("products")
@@ -64,6 +77,7 @@ export async function getProductById(id: string): Promise<Product> {
   return data;
 }
 
+// Update Product Service
 export async function updateProduct(id: string, payload: ProductForm) {
   const { error } = await supabaseClient
     .from("products")
@@ -73,6 +87,7 @@ export async function updateProduct(id: string, payload: ProductForm) {
   if (error) throw new Error(error.message);
 }
 
+// Delete Product Service
 export async function deleteProduct(id: string) {
   const { error } = await supabaseClient.from("products").delete().eq("id", id);
 
