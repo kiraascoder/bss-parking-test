@@ -73,10 +73,8 @@ export async function updateProduct(id: string, payload: ProductForm) {
   if (error) throw new Error(error.message);
 }
 
-
 export async function deleteProduct(id: string) {
   const { error } = await supabaseClient.from("products").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
 }
-  

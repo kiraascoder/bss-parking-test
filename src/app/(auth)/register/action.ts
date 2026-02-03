@@ -3,6 +3,7 @@
 import { createSupabaseServer } from "@/lib/supabase/server";
 
 interface RegisterPayload {
+  displayName: string;
   email: string;
   password: string;
 }
@@ -13,6 +14,11 @@ export async function registerAction(payload: RegisterPayload) {
   const { error } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
+    options: {
+      data: {
+        display_name: payload.displayName,
+      },
+    },
   });
 
   if (error) {
